@@ -20,14 +20,22 @@ public class Income {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long incomeId;
 
+    // Ralate with account service
+    @Column(name = "ACCOUNT_ID")
+    private long accountId;
+
     @Column(name = "INCOME_DESCRIPTION")
     private String incomeDescription;
+
     @Column(name = "AMOUNT")
     private long amount;
+
     @Column(name = "INCOME_TYPE")
-    private String typeAmount;
+    private String incomeType;
+
     @Column(name = "INCOME_DATE")
     private Instant date;
-    @Column(name = "INCOME PERIOD")
+
+    @Column(name = "INCOME_PERIOD")
     private String period;
 }
