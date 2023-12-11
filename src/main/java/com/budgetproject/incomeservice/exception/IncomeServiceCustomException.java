@@ -1,7 +1,9 @@
 package com.budgetproject.incomeservice.exception;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class IncomeServiceCustomException extends RuntimeException {
     private String errorCode;

@@ -3,7 +3,7 @@ package com.budgetproject.incomeservice.controller;
 import com.budgetproject.incomeservice.model.IncomeRequest;
 import com.budgetproject.incomeservice.model.IncomeResponse;
 import com.budgetproject.incomeservice.service.IncomeService;
-import lombok.extern.log4j.Log4j2;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,14 +13,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/income")
-@Log4j2
 public class IncomeController {
 
     @Autowired
     private IncomeService incomeService;
 
     @PostMapping
-    public ResponseEntity<Long> addIncome(@RequestBody IncomeRequest incomeRequest) {
+    public ResponseEntity<Long> addIncome(@RequestBody @Valid IncomeRequest incomeRequest) {
         long incomeId = incomeService.recordIncome(incomeRequest);
         return new ResponseEntity<>(incomeId, HttpStatus.CREATED);
     }
@@ -39,9 +38,15 @@ public class IncomeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> setIncome(@PathVariable("id") long incomeId,
-                                          @RequestBody IncomeRequest incomeRequest) {
+    public ResponseEntity<Void> updateIncome(@PathVariable("id") long incomeId,
+                                             @RequestBody @Valid IncomeRequest incomeRequest) {
         incomeService.updateIncome(incomeId, incomeRequest);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteIncome(@PathVariable("id") long incomeId) {
+        incomeService.deleteIncome(incomeId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

@@ -18,5 +18,4 @@ public class IncomeRequest {
     private String incomeDescription;
     private long amount;
     private String incomeType;
-    private String period;
 }

@@ -5,14 +5,17 @@ import com.budgetproject.incomeservice.exception.IncomeServiceCustomException;
 import com.budgetproject.incomeservice.model.IncomeRequest;
 import com.budgetproject.incomeservice.model.IncomeResponse;
 import com.budgetproject.incomeservice.repository.IncomeRepositoy;
+import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.beans.BeanUtils.*;
 
@@ -23,17 +26,32 @@ public class IncomeServiceImpl implements IncomeService {
     @Autowired
     private IncomeRepositoy incomeRepositoy;
 
+    private String getCurrentPeriod() {
+        String period = "";
+        try {
+            Instant currentInstant = Instant.now();
+            YearMonth yearMonth = YearMonth.from(currentInstant.atZone(ZoneId.systemDefault()));
+            // Formatear el YearMonth como "yyyyMM"
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
+            period = yearMonth.format(formatter);
+        } catch (Exception var3) {
+            log.error("Error getting current period", var3);
+        }
+
+        return period;
+    }
+
     @Override
-    public long recordIncome(IncomeRequest incomeRequest) {
+    public long recordIncome(@Valid IncomeRequest incomeRequest) {
         log.info("Recording Income...");
 
         Income income = Income.builder()
                 .accountId(incomeRequest.getAccountId())
                 .incomeDescription(incomeRequest.getIncomeDescription())
                 .amount(incomeRequest.getAmount())
-                .incomeType(incomeRequest.getIncomeType().toString())
+                .incomeType(incomeRequest.getIncomeType())
                 .date(Instant.now())
-                .period(incomeRequest.getPeriod())
+                .period(getCurrentPeriod())
                 .build();
 
         incomeRepositoy.save(income);
@@ -43,7 +61,7 @@ public class IncomeServiceImpl implements IncomeService {
     }
 
     @Override
-    public void updateIncome(long incomeId, IncomeRequest incomeRequest) {
+    public void updateIncome(long incomeId, @Valid IncomeRequest incomeRequest) {
         log.info("Update Income for Id: {}", incomeId);
 
         // implement exception
@@ -67,10 +85,6 @@ public class IncomeServiceImpl implements IncomeService {
             income.setIncomeType(incomeRequest.getIncomeType());
         }
 
-        if (incomeRequest.getPeriod() != null) {
-            income.setPeriod(incomeRequest.getPeriod());
-        }
-
         incomeRepositoy.save(income);
         log.info("Income updated successfully!");
     }
@@ -80,16 +94,13 @@ public class IncomeServiceImpl implements IncomeService {
         log.info("Get all incomes");
         List<Income> incomeList = incomeRepositoy.findAll();
 
-        List<IncomeResponse> incomes
-                = incomeList
+        return incomeList
                 .stream()
                 .map(incomeEntity-> {
                     IncomeResponse incomeResponse = new IncomeResponse();
                     BeanUtils.copyProperties(incomeEntity, incomeResponse);
                     return incomeResponse;
                 }).toList();
-
-        return incomes;
     }
 
     @Override
@@ -103,5 +114,16 @@ public class IncomeServiceImpl implements IncomeService {
 
         copyProperties(income, incomeResponse);
         return incomeResponse;
+    }
+
+    @Override
+    public void deleteIncome(long incomeId) {
+        log.info("Get the income for incomeId: {}", incomeId);
+        Income income = incomeRepositoy.findById(incomeId)
+                .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND"));
+
+        incomeRepositoy.delete(income);
+        log.info("Expense with id {} has been removed.", incomeId);
+
     }
 }
