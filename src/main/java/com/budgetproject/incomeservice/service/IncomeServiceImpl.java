@@ -2,6 +2,7 @@ package com.budgetproject.incomeservice.service;
 
 import com.budgetproject.incomeservice.entity.Income;
 import com.budgetproject.incomeservice.exception.IncomeServiceCustomException;
+import com.budgetproject.incomeservice.external.client.AccountService;
 import com.budgetproject.incomeservice.model.IncomeRequest;
 import com.budgetproject.incomeservice.model.IncomeResponse;
 import com.budgetproject.incomeservice.repository.IncomeRepositoy;
@@ -26,6 +27,9 @@ public class IncomeServiceImpl implements IncomeService {
     @Autowired
     private IncomeRepositoy incomeRepositoy;
 
+    @Autowired
+    private AccountService accountService;
+
     private String getCurrentPeriod() {
         String period = "";
         try {
@@ -44,6 +48,9 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     public long recordIncome(@Valid IncomeRequest incomeRequest) {
         log.info("Recording Income...");
+
+        log.info("Crediting amount to account {}", incomeRequest.getAccountId());
+        accountService.creditAmount(incomeRequest.getAccountId(), incomeRequest.getAmount());
 
         Income income = Income.builder()
                 .accountId(incomeRequest.getAccountId())
@@ -69,23 +76,40 @@ public class IncomeServiceImpl implements IncomeService {
                 "Income with given Id not found", "INCOME_NOT_FOUND"
         ));
 
-        if (incomeRequest.getAccountId() != 0) {
-            income.setAccountId(incomeRequest.getAccountId());
-        }
-
         if (incomeRequest.getIncomeDescription() != null) {
             income.setIncomeDescription(incomeRequest.getIncomeDescription());
-        }
-
-        if (incomeRequest.getAmount() != 0) {
-            income.setAmount(incomeRequest.getAmount());
         }
 
         if (incomeRequest.getIncomeType() != null) {
             income.setIncomeType(incomeRequest.getIncomeType());
         }
 
-        incomeRepositoy.save(income);
+        if (incomeRequest.getAccountId() != 0 && incomeRequest.getAmount() != 0) {
+            log.info("Removing income to account : {}", income.getAccountId());
+            accountService.debitAmount(income.getAccountId(), income.getAmount());
+
+            try {
+                log.info("Adding income to account : {}", incomeRequest.getAccountId());
+                accountService.creditAmount(incomeRequest.getAccountId(), incomeRequest.getAmount());
+
+                income.setAccountId(incomeRequest.getAccountId());
+                income.setAmount(incomeRequest.getAmount());
+                incomeRepositoy.save(income);
+                log.info("Income updated successfully!");
+            } catch (IncomeServiceCustomException e) {
+                log.error("Error modifying income", e);
+
+                // roll back
+                log.info("Removing income from account: {}", income.getAccountId());
+                accountService.creditAmount(income.getAccountId(), income.getAmount());
+
+                throw new IncomeServiceCustomException(
+                        "Error modifying income",
+                        "BAD_REQUEST"
+                );
+            }
+        }
+
         log.info("Income updated successfully!");
     }
 
@@ -122,6 +146,8 @@ public class IncomeServiceImpl implements IncomeService {
         Income income = incomeRepositoy.findById(incomeId)
                 .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND"));
 
+        log.info("Removing income from account : {}", income.getAccountId());
+        accountService.debitAmount(income.getAccountId(), income.getAmount());
         incomeRepositoy.delete(income);
         log.info("Expense with id {} has been removed.", incomeId);
 
