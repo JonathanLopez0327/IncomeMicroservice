@@ -73,7 +73,7 @@ public class IncomeServiceImpl implements IncomeService {
 
         // implement exception
         Income income = incomeRepositoy.findById(incomeId).orElseThrow(() -> new IncomeServiceCustomException(
-                "Income with given Id not found", "INCOME_NOT_FOUND"
+                "Income with given Id not found", "INCOME_NOT_FOUND", 404
         ));
 
         if (incomeRequest.getIncomeDescription() != null) {
@@ -105,7 +105,8 @@ public class IncomeServiceImpl implements IncomeService {
 
                 throw new IncomeServiceCustomException(
                         "Error modifying income",
-                        "BAD_REQUEST"
+                        "BAD_REQUEST",
+                        500
                 );
             }
         }
@@ -132,7 +133,7 @@ public class IncomeServiceImpl implements IncomeService {
         log.info("Get the income for incomeId: {}", incomeId);
 
         Income income = incomeRepositoy.findById(incomeId)
-                .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND"));
+                .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND", 404));
 
         IncomeResponse incomeResponse = new IncomeResponse();
 
@@ -144,7 +145,7 @@ public class IncomeServiceImpl implements IncomeService {
     public void deleteIncome(long incomeId) {
         log.info("Get the income for incomeId: {}", incomeId);
         Income income = incomeRepositoy.findById(incomeId)
-                .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND"));
+                .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND", 404));
 
         log.info("Removing income from account : {}", income.getAccountId());
         accountService.debitAmount(income.getAccountId(), income.getAmount());
