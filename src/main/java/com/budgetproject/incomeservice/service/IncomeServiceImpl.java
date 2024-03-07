@@ -5,7 +5,7 @@ import com.budgetproject.incomeservice.exception.IncomeServiceCustomException;
 import com.budgetproject.incomeservice.external.client.AccountService;
 import com.budgetproject.incomeservice.model.IncomeRequest;
 import com.budgetproject.incomeservice.model.IncomeResponse;
-import com.budgetproject.incomeservice.repository.IncomeRepositoy;
+import com.budgetproject.incomeservice.repository.IncomeRepository;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.BeanUtils;
@@ -25,7 +25,7 @@ import static org.springframework.beans.BeanUtils.*;
 public class IncomeServiceImpl implements IncomeService {
 
     @Autowired
-    private IncomeRepositoy incomeRepositoy;
+    private IncomeRepository incomeRepository;
 
     @Autowired
     private AccountService accountService;
@@ -61,7 +61,7 @@ public class IncomeServiceImpl implements IncomeService {
                 .period(getCurrentPeriod())
                 .build();
 
-        incomeRepositoy.save(income);
+        incomeRepository.save(income);
         log.info("Income recorded");
 
         return income.getIncomeId();
@@ -72,7 +72,7 @@ public class IncomeServiceImpl implements IncomeService {
         log.info("Update Income for Id: {}", incomeId);
 
         // implement exception
-        Income income = incomeRepositoy.findById(incomeId).orElseThrow(() -> new IncomeServiceCustomException(
+        Income income = incomeRepository.findById(incomeId).orElseThrow(() -> new IncomeServiceCustomException(
                 "Income with given Id not found", "INCOME_NOT_FOUND", 404
         ));
 
@@ -94,7 +94,7 @@ public class IncomeServiceImpl implements IncomeService {
 
                 income.setAccountId(incomeRequest.getAccountId());
                 income.setAmount(incomeRequest.getAmount());
-                incomeRepositoy.save(income);
+                incomeRepository.save(income);
                 log.info("Income updated successfully!");
             } catch (IncomeServiceCustomException e) {
                 log.error("Error modifying income", e);
@@ -117,7 +117,7 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     public List<IncomeResponse> getAllIncome() {
         log.info("Get all incomes");
-        List<Income> incomeList = incomeRepositoy.findAll();
+        List<Income> incomeList = incomeRepository.findAll();
 
         return incomeList
                 .stream()
@@ -132,7 +132,7 @@ public class IncomeServiceImpl implements IncomeService {
     public IncomeResponse getIncomeById(long incomeId) {
         log.info("Get the income for incomeId: {}", incomeId);
 
-        Income income = incomeRepositoy.findById(incomeId)
+        Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND", 404));
 
         IncomeResponse incomeResponse = new IncomeResponse();
@@ -144,12 +144,12 @@ public class IncomeServiceImpl implements IncomeService {
     @Override
     public void deleteIncome(long incomeId) {
         log.info("Get the income for incomeId: {}", incomeId);
-        Income income = incomeRepositoy.findById(incomeId)
+        Income income = incomeRepository.findById(incomeId)
                 .orElseThrow(() -> new IncomeServiceCustomException("Income with given id not found", "INCOME_NOT_FOUND", 404));
 
         log.info("Removing income from account : {}", income.getAccountId());
         accountService.debitAmount(income.getAccountId(), income.getAmount());
-        incomeRepositoy.delete(income);
+        incomeRepository.delete(income);
         log.info("Expense with id {} has been removed.", incomeId);
 
     }
